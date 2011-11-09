@@ -1,0 +1,5 @@
+[encoding: UTF-8]
+data/tomboy.lens.in
+data/unity-lens-tomboy.service.in
+src/daemon.vala
+src/main.vala

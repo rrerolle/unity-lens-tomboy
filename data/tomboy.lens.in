@@ -1,0 +1,12 @@
+[Lens]
+DBusName=com.canonical.Unity.Lens.Tomboy
+DBusPath=/com/canonical/Unity/Lens/Tomboy
+Icon=/usr/share/app-install/icons/tomboy.png
+_Name=Tomboy notes
+_Description=Easily find Tomboy notes
+_SearchHint=Type to search
+Shortcut=
+
+[Desktop Entry]
+X-Ubuntu-Gettext-Domain=unity-lens-tomboy
+
