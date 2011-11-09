@@ -4,7 +4,7 @@ AC_INIT([unity-lens-tomboy],[0.1])
 AC_CONFIG_SRCDIR([src])
 AC_CONFIG_HEADERS([config.h])
 
-AM_INIT_AUTOMAKE([no-dist-gzip dist-bzip2])
+AM_INIT_AUTOMAKE([1.11])
 
 # Enable silent rules is available
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
