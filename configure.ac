@@ -15,7 +15,7 @@ AC_PROG_CC
 AC_PROG_CC_STDC
 AM_PROG_VALAC([0.7.0])
 AC_PROG_INSTALL
-IT_PROG_INTLTOOL([0.35])
+IT_PROG_INTLTOOL([0.40.0])
 
 pkg_modules="glib-2.0 >= 2.26 unity >= 4.0.0"
 LENS_DAEMON_PACKAGES="--pkg glib-2.0 --pkg unity"
@@ -32,8 +32,6 @@ AM_GLIB_GNU_GETTEXT
 
 localedir='${prefix}/${DATADIRNAME}/locale'
 AC_SUBST(localedir)
-
-#IT_PROG_INTLTOOL([0.40.0])
 
 AC_DEFINE_UNQUOTED(LOCALE_DIR, "${PREFIX}/${DATADIRNAME}/locale",[Locale directory])
 AC_DEFINE_UNQUOTED(DATADIR, "${PREFIX}/${DATADIRNAME}",[Data directory])
