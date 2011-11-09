@@ -42,6 +42,9 @@ AC_DEFINE_UNQUOTED(PREFIXDIR, "${PREFIX}",[Prefix directory])
 INTLTOOL_LENS_RULE='%.lens: %.lens.in $(INTLTOOL_MERGE) $(wildcard $(top_srcdir)/po/*.po) ; LC_ALL=C $(INTLTOOL_MERGE) -d -u -c $(top_builddir)/po/.intltool-merge-cache $(top_srcdir)/po $< [$]@'
 AC_SUBST(INTLTOOL_LENS_RULE)
 
+LENSESDIR="${datadir}/unity/lenses"
+AC_SUBST(LENSESDIR)
+
 AC_CONFIG_FILES([
 	Makefile
 	po/Makefile.in

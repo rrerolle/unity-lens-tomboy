@@ -1,4 +1,4 @@
-bin_PROGRAMS = unity-tomboy-daemon
+libexec_PROGRAMS = unity-tomboy-daemon
 
 unity_tomboy_daemon_SOURCES = \
 	main.vala \
