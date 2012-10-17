@@ -41,9 +41,9 @@ namespace Unity.TomboyLens
             try
             {
                 scope = new Unity.Scope("/com/canonical/Unity/Scope/Tomboy");
-                scope.notify["active-search"].connect(on_search_changed);
-                scope.notify["active-global-search"].connect(on_global_search_changed);
-                scope.activate_uri.connect(activate);
+                scope.search_in_global = true;
+                scope.search_changed.connect(on_search_changed);
+                scope.activate_uri.connect(on_uri_activate);
                 scope.export();
                 lens = new Unity.Lens("/com/canonical/Unity/Lens/Tomboy",
                                       "tomboy");
@@ -80,51 +80,36 @@ namespace Unity.TomboyLens
             lens.filters = filters;
         }
 
-        private void on_search_changed(GLib.Object obj, ParamSpec pspec)
+        private void on_search_changed (Scope scope, LensSearch search,
+                                        SearchType search_type, Cancellable cancellable)
         {
-            Unity.LensSearch? search = scope.active_search;
-            if (search == null)
-                update_result_model(scope.results_model,
-                                    "");
-            else
-                update_result_model(scope.results_model,
-                                    search.search_string);
+            update_model (search);
             search.finished();
         }
 
-        private void on_global_search_changed(GLib.Object obj, ParamSpec pspec)
-        {
-            Unity.LensSearch? search = scope.active_global_search;
-            if (search == null)
-                return;
-            update_result_model(scope.global_results_model,
-                                search.search_string);
-            search.finished();
-        } 
-
-        private void update_result_model(Dee.Model results_model, string search)
+        private void update_model(Unity.LensSearch search)
         {
             try
             {
                 string[] uri_list = null;
 
-                if (search != "")
-                    uri_list = tomboy.SearchNotes(search, false);
+                if (search.search_string != "")
+                    uri_list = tomboy.SearchNotes(search.search_string, false);
                 else
                     uri_list = tomboy.ListAllNotes();
 
-                results_model.clear();
+                search.results_model.clear();
                 foreach (string uri in uri_list)
-                    results_model.append(uri, "tomboy", 0, "application/x-note",
+                    search.results_model.append(uri, "tomboy", 0, "application/x-note",
                                          tomboy.GetNoteTitle(uri), "", uri);
             }
             catch (IOError e)
             {
-                debug("Error while searching for %s: %s", search, e.message);
+                debug("Error while searching for %s: %s", search.search_string, e.message);
             }
         }
 
-        public Unity.ActivationResponse activate(string uri)
+        public Unity.ActivationResponse on_uri_activate(string uri)
         {
             try
             {
