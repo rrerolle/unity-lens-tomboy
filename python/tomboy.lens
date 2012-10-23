@@ -1,8 +1,8 @@
 [Lens]
-DBusName=com.github.rrerolle.Tomboy
-DBusPath=/com/github/rrerolle/Tomboy
+DBusName=com.github.rrerolle.TomboyLens
+DBusPath=/com/github/rrerolle/TomboyLens
 Name=Tomboy
-Icon=/usr/share/app-install/icons/tomboy.png
+Icon=/usr/share/app-install/icons/tomboy-lens.svg
 Description=Easily find Tomboy notes
 SearchHint=Type to search
 Shortcut=t

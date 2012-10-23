@@ -1,0 +1,225 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+"""Simple lens allowing quick access to Tomboy notes"""
+
+import time
+import logging
+from datetime import datetime, timedelta
+from xml.etree import ElementTree
+from gettext import textdomain, gettext as _
+from gi.repository import GLib, Gio, GObject, Unity
+
+
+class TomboyLens(Unity.Lens):
+    def __init__(self):
+        self.dbus_name = 'com.github.rrerolle.TomboyLens'
+        self.dbus_path = '/com/github/rrerolle/TomboyLens'
+        Gio.bus_own_name(
+            Gio.BusType.SESSION,
+            self.dbus_name,
+            Gio.BusNameOwnerFlags.NONE, None, None, None
+        )
+        self.mainloop = GObject.MainLoop()
+        self.remote = None
+        self.name = None
+        self.notebooks = {}
+        self.lens = Unity.Lens.new(self.dbus_path, 'tomboy')
+        self.scope = Unity.Scope.new(self.dbus_path + '/main')
+        self.lens.props.search_hint = _('Search for Tomboy notes')
+        self.lens.props.visible = True
+        self.lens.props.search_in_global = True
+        self.setup_categories()
+        self.setup_filters()
+        self.setup_remote()
+        self.scope.connect('search-changed', self.on_search_changed)
+        self.scope.connect('filters-changed', self.on_filters_changed)
+        self.scope.connect('activate-uri', self.on_activate_uri)
+        self.scope.export()
+        self.lens.add_local_scope(self.scope)
+        self.lens.export()
+
+    def setup_remote(self):
+        for name in ['Tomboy', 'Gnote']:
+            Gio.DBusProxy.new(
+                Gio.bus_get_sync(Gio.BusType.SESSION, None), 0, None,
+                'org.gnome.%s' % name,
+                '/org/gnome/%s/RemoteControl' % name,
+                'org.gnome.%s.RemoteControl' % name, None,
+                self.on_remote_ready, name.lower(),
+            )
+
+    def setup_categories(self):
+        self.categories = {
+            'Tomboy notes': Unity.Category.new(
+                    'Tomboy notes',
+                    Gio.ThemedIcon.new('/usr/share/app-install/icons/tomboy-lens.svg'),
+                    Unity.CategoryRenderer.VERTICAL_TILE,
+                ),
+        }
+        self.category_order = ['Tomboy notes']
+        self.lens.props.categories = [self.categories[n] for n in self.category_order]
+
+    def setup_filters(self):
+        self.filters = {
+            'notebook': Unity.RadioOptionFilter.new(
+                    'notebook', _('Notebook'), None, False),
+            'modified': Unity.RadioOptionFilter.new(
+                    'modified', _('Last modified'), None, False),
+        }
+        self.filter_order = ['modified', 'notebook']
+        modified = self.filters['modified']
+        modified.add_option('today', _('Today'), None)
+        modified.add_option('7-days', _('Less than 7 days'), None)
+        modified.add_option('30-days', _('Less than 30 days'), None)
+        modified.add_option('1-year', _('Less than 1 year'), None)
+        self.lens.props.filters = [self.filters[n] for n in self.filter_order]
+        self.lens.export()
+
+    def update_notebooks(self):
+        self.notebooks.clear()
+        for note in self.remote.GetAllNotesWithTag('(s)', 'system:template'):
+            tags = self.remote.GetTagsForNote('(s)', note)
+            if not any(tag.startswith('system:notebook') for tag in tags):
+                continue
+            content = self.remote.GetNoteCompleteXml('(s)', note)
+            content = content.decode('utf-8').encode('utf-16')
+            tree = ElementTree.fromstring(content)
+            for tag in tree.iter('{http://beatniksoftware.com/tomboy}tag'):
+                if not tag.text.startswith('system:notebook'):
+                    continue
+                notebook = tag.text.split(':')[-1]
+                self.notebooks[notebook] = tag.text.lower()
+
+    def update_notebook_filters(self):
+        # Unref filters, to prevent locking when modifying
+        self.lens.props.filters = []
+        notebook_filter = self.filters['notebook']
+        for name in self.notebooks:
+            if notebook_filter.get_option(self.notebooks[name]):
+                notebook_filter.remove_option(self.notebooks[name])
+        self.update_notebooks()
+        for name in sorted(self.notebooks):
+            if not notebook_filter.get_option(self.notebooks[name]):
+                notebook_filter.add_option(self.notebooks[name], name, None)
+        # Now we're done, we can reference the filters again
+        self.lens.props.filters = [self.filters[n] for n in self.filter_order]
+
+    def get_notebook_for_note(self, note):
+        for tag in self.remote.GetTagsForNote('(s)', note):
+            if tag.startswith('system:notebook'):
+                return tag
+
+    def filter_results(self, notes):
+        for note in notes[:]:
+            if 'system:template' in self.remote.GetTagsForNote('(s)', note):
+                notes.remove(note)
+        notebook = None
+        notebook_filter = self.scope.get_filter('notebook')
+        notebook_option = notebook_filter.get_active_option()
+        if notebook_option:
+            notebook = notebook_option.props.id
+            notes = [note for note in notes
+                if self.get_notebook_for_note(note) == notebook
+            ]
+        modified_filter = self.scope.get_filter('modified')
+        modified_option = modified_filter.get_active_option()
+        if modified_option:
+            modified = modified_option.props.id
+            for note in notes[:]:
+                timestamp = self.remote.GetNoteChangeDate('(s)', note)
+                change_date = datetime.fromtimestamp(timestamp)
+                if modified == 'today':
+                    delta = timedelta(days=1)
+                elif modified == '7-days':
+                    delta = timedelta(days=7)
+                elif modified == '30-days':
+                    delta = timedelta(days=30)
+                elif modified == '1-year':
+                    delta = timedelta(days=365)
+                if change_date < datetime.now() - delta:
+                    notes.remove(note)
+        return notes
+
+    def on_remote_ready(self, proxy, result, name):
+        if self.remote:
+            return
+        remote = Gio.DBusProxy.new_finish(result)
+        # Gnote seems to need some time to activate
+        if name == 'gnote':
+            time.sleep(0.5)
+        try:
+            remote.Version()
+        except GLib.GError:
+            return
+        logging.debug('Using %s remote', name)
+        self.name = name
+        self.remote = remote
+        self.remote.connect('g-signal', self.on_tomboy_event)
+        self.update_notebook_filters()
+
+    def on_tomboy_event(self, connection, owner, signal, data):
+        note = data[0]
+        if signal == 'NoteAdded':
+            logging.debug('Note added: %s', note)
+            if 'system:template' in self.remote.GetTagsForNote('(s)', note):
+                self.update_notebook_filters()
+        elif signal == 'NoteDeleted':
+            logging.debug('Note deleted: %s', note)
+            if note in self.notebooks.values():
+                self.update_notebook_filters()
+        elif signal == 'NoteSaved':
+            logging.debug('Note saved: %s', note)
+        return self.scope.queue_search_changed(Unity.SearchType.DEFAULT)
+
+    def on_filters_changed(self, scope):
+        return scope.queue_search_changed(Unity.SearchType.DEFAULT)
+
+    def on_search_changed(self, scope, search, search_type, cancellable):
+        if not self.remote:
+            return
+        search_string = search.props.search_string.strip()
+        model = search.props.results_model
+        model.clear()
+        if search_string:
+            notes = self.remote.SearchNotes('(sb)', search_string, False)
+        else:
+            notes = self.remote.ListAllNotes()
+        for note_uri in self.filter_results(notes):
+            model.append(
+                note_uri,
+                self.name,
+                Unity.CategoryType.NONE,
+                'application/x-desktop',
+                self.remote.GetNoteTitle('(s)', note_uri),
+                '',
+                note_uri,
+            )
+        search.finished()
+
+    def on_active(self, scope, active):
+        print 'ACTIVE'
+        return scope.queue_search_changed(Unity.SearchType.DEFAULT)
+
+    def on_activate_uri(self, scope, uri):
+        self.remote.DisplayNote('(s)', uri)
+        return Unity.ActivationResponse(
+            handled=Unity.HandledType.HIDE_DASH,
+            goto_uri=uri,
+        )
+
+    def run(self):
+        self.mainloop.run()
+
+
+def main():
+    """Main entry point"""
+    textdomain('unity-lens-tomboy')
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)s [%(levelname)s] %(message)s',
+    )
+    tomboy_lens = TomboyLens()
+    tomboy_lens.run()
+
+if __name__ == '__main__':
+    main()
