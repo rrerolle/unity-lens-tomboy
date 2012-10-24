@@ -51,8 +51,8 @@ class TomboyLens(Unity.Lens):
     def setup_categories(self):
         self.categories = {
             'Tomboy notes': Unity.Category.new(
-                    'Tomboy notes',
-                    Gio.ThemedIcon.new('/usr/share/app-install/icons/tomboy-lens.svg'),
+                    _('Tomboy notes'),
+                    Gio.ThemedIcon.new('/usr/share/pixmaps/tomboy-lens.svg'),
                     Unity.CategoryRenderer.VERTICAL_TILE,
                 ),
         }
