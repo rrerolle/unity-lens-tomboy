@@ -196,10 +196,6 @@ class TomboyLens(Unity.Lens):
             )
         search.finished()
 
-    def on_active(self, scope, active):
-        print 'ACTIVE'
-        return scope.queue_search_changed(Unity.SearchType.DEFAULT)
-
     def on_activate_uri(self, scope, uri):
         self.remote.DisplayNote('(s)', uri)
         return Unity.ActivationResponse(
