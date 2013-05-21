@@ -1,0 +1,6 @@
+include unity-lens-tomboy.service
+include tomboy.lens.in
+include src/unity-lens-tomboy
+include tomboy-lens.svg
+include po/*
+include COPYING
