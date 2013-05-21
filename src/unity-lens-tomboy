@@ -34,6 +34,7 @@ class TomboyLens(Unity.Lens):
         self.scope.connect('search-changed', self.on_search_changed)
         self.scope.connect('filters-changed', self.on_filters_changed)
         self.scope.connect('activate-uri', self.on_activate_uri)
+        self.scope.connect('preview-uri', self.on_preview_uri)
         self.scope.export()
         self.lens.add_local_scope(self.scope)
         self.lens.export()
@@ -202,6 +203,42 @@ class TomboyLens(Unity.Lens):
             handled=Unity.HandledType.HIDE_DASH,
             goto_uri=uri,
         )
+
+    def on_preview_uri(self, scope, uri):
+        model = scope.props.results_model
+        current_note = model.get_first_iter()
+        last_note = model.get_last_iter()
+        while current_note != last_note:
+            if model.get_value(current_note, 0) != uri:
+                current_note = model.next(current_note)
+                continue
+            result_item = {
+                'uri': uri,
+                'image': model.get_value(current_note, 1),
+                'category': model.get_value(current_note, 2),
+                'mime-type': model.get_value(current_note, 3),
+                'title': model.get_value(current_note, 4),
+                'description': model.get_value(current_note, 5),
+                'dnd-uri': model.get_value(current_note, 6),
+            }
+            preview = Unity.GenericPreview.new(
+                result_item['title'],
+                result_item['description'],
+                None,
+            )
+            preview.props.image_source_uri = result_item['image']
+            icon = Gio.ThemedIcon.new(result_item['image'])
+            preview.props.image = icon
+            note_lines = self.remote.GetNoteContents(
+                '(s)', result_item['uri'],
+            ).split('\n')
+            preview.props.description_markup = '\n'.join(
+                note_lines[1:min(len(note_lines), 12)])
+            view_action = Unity.PreviewAction.new('open', _('Open'), None)
+            view_action.connect('activated', self.on_activate_uri)
+            preview.add_action(view_action)
+            return preview
+        return None
 
     def run(self):
         self.mainloop.run()
