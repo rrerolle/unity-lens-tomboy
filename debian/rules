@@ -13,4 +13,5 @@
 	dh $@ 
 
 override_dh_clean:
+	dh_clean
 	rm -rf build

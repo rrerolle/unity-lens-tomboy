@@ -6,7 +6,7 @@ Build-Depends: debhelper (>= 8.0.0),
                intltool (>= 0.50.0),
                python (>= 2.7.4),
                python-distutils-extra (>= 2.37),
-Standards-Version: 3.9.3.1
+Standards-Version: 3.9.4
 Homepage: https://github.com/rrerolle/unity-lens-tomboy
 Vcs-Git: git://github.com/rrerolle/unity-lens-tomboy.git
 
