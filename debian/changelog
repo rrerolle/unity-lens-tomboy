@@ -1,0 +1,20 @@
+unity-lens-tomboy (0.3-1) raring; urgency=low
+
+  * Added raring ringtail support
+  * Added note preview
+  * Added notebook filtering
+  * Added modification date filtering
+
+ -- Rémi Rérolle <remi.rerolle@gmail.com>  Tue, 21 May 2013 14:03:57 +0200
+
+unity-lens-tomboy (0.2-1) precise; urgency=low
+
+  * Added precise pangolin support
+
+ -- Rémi Rérolle <remi.rerolle@gmail.com>  Wed, 17 Oct 2012 15:22:55 +0200
+
+unity-lens-tomboy (0.1-1) oneiric; urgency=low
+
+  * Initial release
+
+ -- Rémi Rérolle <remi.rerolle@gmail.com>  Wed, 09 Nov 2011 14:47:18 +0100

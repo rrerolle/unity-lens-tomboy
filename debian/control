@@ -1,0 +1,22 @@
+Source: unity-lens-tomboy
+Section: gnome
+Priority: optional
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Build-Depends: debhelper (>= 8.0.0),
+               intltool (>= 0.50.0),
+               python (>= 2.7.4),
+               python-distutils-extra (>= 2.37),
+Standards-Version: 3.9.3.1
+Homepage: https://github.com/rrerolle/unity-lens-tomboy
+Vcs-Git: git://github.com/rrerolle/unity-lens-tomboy.git
+
+Package: unity-lens-tomboy
+Architecture: any
+Depends: ${misc:Depends},
+         ${python:Depends},
+         python-gi,
+         gir1.2-unity-5.0,
+         gir1.2-glib-2.0,
+Description: Tomboy lens for Unity
+ This package contains the Tomboy lens which can be used
+ inside Unity to search and open Tomboy notes
